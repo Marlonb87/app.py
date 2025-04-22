@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 st.title("📊 Projeção de Peso Total (Ton) até Julho/2027")
 
 # 1) Upload do Excel
-uploaded_file = st.file_uploader("4600672730_Prog_Process_10.04.2025.xlsx", type=["xlsx"])
+uploaded_file = st.file_uploader("4600672730_Prog_Process_22.04.2025.xlsx", type=["xlsx"])
 if uploaded_file is None:
     st.info("Aguardando o upload do arquivo...")
     st.stop()
