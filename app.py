@@ -17,11 +17,12 @@ if uploaded_file is None:
 df = pd.read_excel(uploaded_file, engine="openpyxl")
 df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'], errors='coerce')
 df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)'])
-df = df[(df['Fim Real Caldeiraria'] >= "2023-06-01") & (df['Fim Real Caldeiraria'] <= pd.to_datetime("today"))]
+df = df[(df['Fim Real Caldeiraria'] >= "2023-05-01") & (df['Fim Real Caldeiraria'] <= pd.to_datetime("today"))]
 
 # 3) Séries mensais
-media_mensal = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['Peso Total (Ton)'].mean()
-soma_mensal  = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['Peso Total (Ton)'].sum()
+soma_mensal = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['Peso Total (Ton)'].sum()
+contagem_mensal = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M')).size()
+media_mensal = soma_mensal / contagem_mensal
 
 # 4) Parâmetros de projeção
 data_fim = pd.to_datetime("2027-07-31")
