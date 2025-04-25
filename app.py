@@ -7,14 +7,13 @@ import plotly.graph_objects as go
 st.set_page_config(layout="wide")
 st.title("📊 Projeção de Peso Total (Ton) até Julho/2027")
 
-# 1) Upload do Excel
-uploaded_file = st.file_uploader("4600672730_Prog_Process_22.04.2025.xlsx", type=["xlsx"])
-if uploaded_file is None:
-    st.info("Aguardando o upload do arquivo...")
-    st.stop()
+# 1) Leitura direta do GitHub
+url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_22.04.2025.xlsx"
+df = pd.read_excel(url, engine="openpyxl")
+
 
 # 2) Leitura e pré-processamento
-df = pd.read_excel(uploaded_file, engine="openpyxl")
+df = pd.read_excel(url, engine="openpyxl")
 df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'], errors='coerce')
 df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)'])
 df = df[df['Fim Real Caldeiraria'] <= pd.to_datetime("today")]
