@@ -10,7 +10,7 @@ st.set_page_config(layout="wide")
 st.title("📊 Projeção de Peso Total (Ton) até Julho/2027")
 
 # 1) Leitura direta do GitHub
-url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_22.04.2025.xlsx"
+url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_02.05.2025.xlsx"
 df = pd.read_excel(url, engine="openpyxl")
 
 # 2) Pré-processamento
