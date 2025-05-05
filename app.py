@@ -3,7 +3,9 @@ import pandas as pd
 import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 import plotly.graph_objects as go
+import os
 
+os.makedirs("C:/PowerBI/graficos", exist_ok=True)
 st.set_page_config(layout="wide")
 st.title("📊 Projeção de Peso Total (Ton) até Julho/2027")
 
@@ -121,3 +123,9 @@ elif opcao == "Barras por Ano":
 
 st.subheader("📅 Tabela de Projeções Mensais")
 st.dataframe(df_proj.style.format("{:,.0f}"))
+
+# 13) Salvar os gráficos como imagens para Power BI
+fig1.write_image("C:/PowerBI/graficos/soma_mensal.png", width=1200, height=600, engine="kaleido")
+fig2.write_image("C:/PowerBI/graficos/acumulado.png", width=1200, height=600, engine="kaleido")
+fig_var.write_image("C:/PowerBI/graficos/variacao.png", width=1200, height=600, engine="kaleido")
+fig_bar.write_image("C:/PowerBI/graficos/barras_por_ano.png", width=1200, height=600, engine="kaleido")
