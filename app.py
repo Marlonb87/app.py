@@ -21,7 +21,7 @@ def carregar_dados():
 
 def preparar_series(df):
     serie_peso = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['Peso Total (Ton)'].sum()
-    serie_ss = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['SS'].sum()
+    serie_ss = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['SS SAMC'].sum()
     return serie_peso.last('24M'), serie_ss.last('24M')
 
 def prever_serie(serie, fim_proj="2027-07-31"):
