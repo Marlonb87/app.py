@@ -20,11 +20,8 @@ def carregar_dados():
     return df
 
 def preparar_series(df):
-    # Soma mensal para Peso Total (Ton)
     serie_peso = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['Peso Total (Ton)'].sum()
-    # Soma mensal para SS
     serie_ss = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))['SS'].sum()
-    # Usar os últimos 24 meses
     return serie_peso.last('24M'), serie_ss.last('24M')
 
 def prever_serie(serie, fim_proj="2027-07-31"):
@@ -47,7 +44,6 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
                    real_ss, otim_ss, pess_ss,
                    acum_r_ss, acum_o_ss, acum_p_ss,
                    df):
-    # Gráfico Peso Total (Ton) - Soma Mensal
     fig1 = go.Figure([
         go.Scatter(x=serie_peso.index, y=serie_peso, mode='lines+markers', name='Peso Histórico'),
         go.Scatter(x=datas_fut, y=real_peso, mode='lines', name='Peso Realista'),
@@ -56,7 +52,6 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
     ])
     fig1.update_layout(title="📈 Soma Mensal - Peso Total (Ton)", xaxis_title="Data", yaxis_title="Ton")
 
-    # Gráfico SS - Soma Mensal
     fig2 = go.Figure([
         go.Scatter(x=serie_ss.index, y=serie_ss, mode='lines+markers', name='SS Histórico'),
         go.Scatter(x=datas_fut, y=real_ss, mode='lines', name='SS Realista'),
@@ -65,7 +60,6 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
     ])
     fig2.update_layout(title="📈 Soma Mensal - Quantidade de SS", xaxis_title="Data", yaxis_title="Quantidade de SS")
 
-    # Gráfico acumulado Peso Total (Ton)
     fig3 = go.Figure([
         go.Scatter(x=serie_peso.index, y=serie_peso.cumsum(), mode='lines+markers', name='Peso Acumulado Real'),
         go.Scatter(x=datas_fut, y=acum_r_peso, mode='lines', name='Peso Acumulado Realista'),
@@ -74,7 +68,6 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
     ])
     fig3.update_layout(title="📊 Acumulado - Peso Total (Ton)", xaxis_title="Data", yaxis_title="Toneladas Acumuladas")
 
-    # Gráfico acumulado SS
     fig4 = go.Figure([
         go.Scatter(x=serie_ss.index, y=serie_ss.cumsum(), mode='lines+markers', name='SS Acumulado Real'),
         go.Scatter(x=datas_fut, y=acum_r_ss, mode='lines', name='SS Acumulado Realista'),
@@ -83,7 +76,6 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
     ])
     fig4.update_layout(title="📊 Acumulado - Quantidade de SS", xaxis_title="Data", yaxis_title="SS Acumulados")
 
-    # Gráfico barras por ano - Peso e SS
     df['Ano'] = df['Fim Real Caldeiraria'].dt.year
     df['Mês'] = df['Fim Real Caldeiraria'].dt.month_name().str[:3]
 
@@ -115,20 +107,18 @@ def interface():
         st.warning("⚠️ A série de dados está vazia após o filtro.")
         return
 
-    # Previsões para Peso
     datas, real_peso, otim_peso, pess_peso = prever_serie(serie_peso)
     acum_r_peso, acum_o_peso, acum_p_peso = construir_acumulados(real_peso, otim_peso, pess_peso, serie_peso)
 
-    # Previsões para SS
     _, real_ss, otim_ss, pess_ss = prever_serie(serie_ss)
     acum_r_ss, acum_o_ss, acum_p_ss = construir_acumulados(real_ss, otim_ss, pess_ss, serie_ss)
 
     figs = gerar_graficos(serie_peso, serie_ss, datas,
-                         real_peso, otim_peso, pess_peso,
-                         acum_r_peso, acum_o_peso, acum_p_peso,
-                         real_ss, otim_ss, pess_ss,
-                         acum_r_ss, acum_o_ss, acum_p_ss,
-                         df)
+                          real_peso, otim_peso, pess_peso,
+                          acum_r_peso, acum_o_peso, acum_p_peso,
+                          real_ss, otim_ss, pess_ss,
+                          acum_r_ss, acum_o_ss, acum_p_ss,
+                          df)
 
     st.subheader("🔍 Selecione a Visualização")
     op = st.radio("Escolha a série", [
@@ -149,7 +139,7 @@ def interface():
 
     st.plotly_chart(mapa_figs[op], use_container_width=True)
 
-    # Tabela com projeções para Peso e SS
+    st.subheader("📅 Tabela com Projeções Futuras")
     df_proj = pd.DataFrame({
         'Data': datas,
         'Peso Realista': real_peso,
@@ -162,5 +152,11 @@ def interface():
         'SS Otimista': otim_ss,
         'SS Pessimista': pess_ss,
         'SS Acum Realista': acum_r_ss,
-        'SS Acum Otimista': acum
+        'SS Acum Otimista': acum_o_ss,
+        'SS Acum Pessimista': acum_p_ss
     })
+    st.dataframe(df_proj.set_index('Data'), use_container_width=True)
+
+# Rodar o app
+if __name__ == "__main__":
+    interface()
