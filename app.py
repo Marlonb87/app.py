@@ -15,7 +15,7 @@ def carregar_dados():
     url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_16.05.2025.xlsx"
     df = pd.read_excel(url, engine="openpyxl")
     df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'], errors='coerce')
-    df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)', 'SS'])
+    df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)', 'SS SAMC'])
     df = df[df['Fim Real Caldeiraria'] <= pd.to_datetime("today")]
     return df
 
