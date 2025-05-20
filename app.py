@@ -58,7 +58,7 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
         go.Scatter(x=datas_fut, y=otim_ss, mode='lines', name='SS Otimista', line=dict(dash='dash')),
         go.Scatter(x=datas_fut, y=pess_ss, mode='lines', name='SS Pessimista', line=dict(dash='dash')),
     ])
-    fig2.update_layout(title="📈 Soma Mensal - Quantidade de SS", xaxis_title="Data", yaxis_title="Quantidade de SS")
+    fig2.update_layout(title="📈 Soma Mensal - Quantidade de SS SAMC", xaxis_title="Data", yaxis_title="Quantidade de SS")
 
     fig3 = go.Figure([
         go.Scatter(x=serie_peso.index, y=serie_peso.cumsum(), mode='lines+markers', name='Peso Acumulado Real'),
@@ -74,7 +74,7 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
         go.Scatter(x=datas_fut, y=acum_o_ss, mode='lines', name='SS Acumulado Otimista', line=dict(dash='dash')),
         go.Scatter(x=datas_fut, y=acum_p_ss, mode='lines', name='SS Acumulado Pessimista', line=dict(dash='dash')),
     ])
-    fig4.update_layout(title="📊 Acumulado - Quantidade de SS", xaxis_title="Data", yaxis_title="SS Acumulados")
+    fig4.update_layout(title="📊 Acumulado - Quantidade de SS SAMC", xaxis_title="Data", yaxis_title="SS Acumulados")
 
     df['Ano'] = df['Fim Real Caldeiraria'].dt.year
     df['Mês'] = df['Fim Real Caldeiraria'].dt.month_name().str[:3]
@@ -82,7 +82,7 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
     pivot_peso = df.pivot_table(index='Mês', columns='Ano', values='Peso Total (Ton)', aggfunc='sum').fillna(0)
     pivot_peso = pivot_peso.reindex(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
 
-    pivot_ss = df.pivot_table(index='Mês', columns='Ano', values='SS', aggfunc='sum').fillna(0)
+    pivot_ss = df.pivot_table(index='Mês', columns='Ano', values='SS SAMC', aggfunc='sum').fillna(0)
     pivot_ss = pivot_ss.reindex(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'])
 
     fig5 = go.Figure()
@@ -90,7 +90,7 @@ def gerar_graficos(serie_peso, serie_ss, datas_fut, real_peso, otim_peso, pess_p
         fig5.add_trace(go.Bar(name=f'Peso {ano}', x=pivot_peso.index, y=pivot_peso[ano], marker_color='blue'))
         fig5.add_trace(go.Bar(name=f'SS {ano}', x=pivot_ss.index, y=pivot_ss[ano], marker_color='orange'))
 
-    fig5.update_layout(barmode='stack', title="📊 Barras por Ano - Peso Total (Azul) e SS (Laranja)", xaxis_title="Mês", yaxis_title="Total")
+    fig5.update_layout(barmode='stack', title="📊 Barras por Ano - Peso Total (Azul) e SS SAMC (Laranja)", xaxis_title="Mês", yaxis_title="Total")
 
     return fig1, fig2, fig3, fig4, fig5
 
@@ -99,7 +99,7 @@ def exportar_imagens(figs, nomes):
         fig.write_image(f"{CAMINHO_SAIDA}/{nome}.png", width=1200, height=600, engine="kaleido")
 
 def interface():
-    st.title("📊 Projeção de Peso Total (Ton) e SS até Julho/2027")
+    st.title("📊 Projeção de Peso Total (Ton) e SS SAMC até Julho/2027")
     df = carregar_dados()
     serie_peso, serie_ss = preparar_series(df)
 
@@ -123,18 +123,18 @@ def interface():
     st.subheader("🔍 Selecione a Visualização")
     op = st.radio("Escolha a série", [
         "Peso - Soma Mensal",
-        "SS - Soma Mensal",
+        "SS SAMC - Soma Mensal",
         "Peso - Acumulado",
-        "SS - Acumulado",
-        "Barras por Ano - Peso e SS"
+        "SS SAMC - Acumulado",
+        "Barras por Ano - Peso e SS SAMC"
     ])
 
     mapa_figs = {
         "Peso - Soma Mensal": figs[0],
-        "SS - Soma Mensal": figs[1],
+        "SS SAMC - Soma Mensal": figs[1],
         "Peso - Acumulado": figs[2],
-        "SS - Acumulado": figs[3],
-        "Barras por Ano - Peso e SS": figs[4]
+        "SS SAMC - Acumulado": figs[3],
+        "Barras por Ano - Peso e SS SAMC": figs[4]
     }
 
     st.plotly_chart(mapa_figs[op], use_container_width=True)
@@ -148,12 +148,12 @@ def interface():
         'Peso Acum Realista': acum_r_peso,
         'Peso Acum Otimista': acum_o_peso,
         'Peso Acum Pessimista': acum_p_peso,
-        'SS Realista': real_ss,
-        'SS Otimista': otim_ss,
-        'SS Pessimista': pess_ss,
-        'SS Acum Realista': acum_r_ss,
-        'SS Acum Otimista': acum_o_ss,
-        'SS Acum Pessimista': acum_p_ss
+        'SS SAMC Realista': real_ss,
+        'SS SAMC Otimista': otim_ss,
+        'SS SAMC Pessimista': pess_ss,
+        'SS SAMC Acum Realista': acum_r_ss,
+        'SS SAMC Acum Otimista': acum_o_ss,
+        'SS SAMC Acum Pessimista': acum_p_ss
     })
     st.dataframe(df_proj.set_index('Data'), use_container_width=True)
 
