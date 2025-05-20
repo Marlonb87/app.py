@@ -20,11 +20,14 @@ def carregar_dados():
     return df
 
 def preparar_series(df):
-    agrupado = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))
-    serie_peso = agrupado['Peso Total (Ton)'].sum().last('24M')
-    serie_qtd_ss = agrupado['SS SAMC'].count().last('24M')
-    serie_produtividade = (serie_peso / serie_qtd_ss).replace([np.inf, -np.inf], np.nan).dropna()
-    return serie_peso, serie_qtd_ss, serie_produtividade
+    df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'])
+    grupo = df.groupby(pd.Grouper(key='Fim Real Caldeiraria', freq='M'))
+
+    peso_mensal = grupo['Peso Total (Ton)'].sum().last('24M')
+    ss_mensal = grupo['SS SAMC'].count().last('24M')
+    produtividade = (peso_mensal / ss_mensal).replace([np.inf, -np.inf], np.nan)
+
+    return peso_mensal, ss_mensal, produtividade
 
 def prever_serie(serie, fim_proj="2027-07-31"):
     serie = serie.copy()
@@ -46,32 +49,26 @@ def construir_acumulados(previsao, otim, pess, base):
             np.cumsum(otim) + base_acum,
             np.cumsum(pess) + base_acum)
 
-def gerar_graficos(serie, datas_fut, real, otim, pess, acum_r, acum_o, acum_p,
-                   serie_qtd_ss, serie_produtividade, df):
-    
+def gerar_graficos(peso, ss, prod, datas, real, otim, pess, acum_r, acum_o, acum_p, df):
     fig1 = go.Figure([
-        go.Scatter(x=serie.index, y=serie, mode='lines+markers', name='Histórico'),
-        go.Scatter(x=datas_fut, y=real, mode='lines', name='Realista'),
-        go.Scatter(x=datas_fut, y=otim, mode='lines', name='Otimista', line=dict(dash='dash')),
-        go.Scatter(x=datas_fut, y=pess, mode='lines', name='Pessimista', line=dict(dash='dash')),
-        go.Scatter(x=[serie.idxmax()], y=[serie.max()], mode='markers+text',
-                   marker=dict(color='green', size=10), text=["⬆ Máximo"], textposition="top center"),
-        go.Scatter(x=[serie.idxmin()], y=[serie.min()], mode='markers+text',
-                   marker=dict(color='red', size=10), text=["⬇ Mínimo"], textposition="bottom center")
+        go.Scatter(x=peso.index, y=peso, mode='lines+markers', name='Peso (Ton)'),
+        go.Scatter(x=datas, y=real, mode='lines', name='Realista'),
+        go.Scatter(x=datas, y=otim, mode='lines', name='Otimista', line=dict(dash='dash')),
+        go.Scatter(x=datas, y=pess, mode='lines', name='Pessimista', line=dict(dash='dash')),
     ])
-    fig1.update_layout(title="📈 Peso Total por Mês", xaxis_title="Data", yaxis_title="Toneladas")
+    fig1.update_layout(title="📈 Soma Mensal de Peso", xaxis_title="Data", yaxis_title="Ton")
 
     fig2 = go.Figure([
-        go.Scatter(x=serie.index, y=serie.cumsum(), mode='lines+markers', name='Acumulado Real'),
-        go.Scatter(x=datas_fut, y=acum_r, mode='lines', name='Realista'),
-        go.Scatter(x=datas_fut, y=acum_o, mode='lines', name='Otimista', line=dict(dash='dash')),
-        go.Scatter(x=datas_fut, y=acum_p, mode='lines', name='Pessimista', line=dict(dash='dash')),
+        go.Scatter(x=peso.index, y=peso.cumsum(), mode='lines+markers', name='Acumulado Real'),
+        go.Scatter(x=datas, y=acum_r, mode='lines', name='Acum Realista'),
+        go.Scatter(x=datas, y=acum_o, mode='lines', name='Acum Otimista', line=dict(dash='dash')),
+        go.Scatter(x=datas, y=acum_p, mode='lines', name='Acum Pessimista', line=dict(dash='dash')),
     ])
-    fig2.update_layout(title="📊 Peso Acumulado", xaxis_title="Data", yaxis_title="Toneladas")
+    fig2.update_layout(title="📊 Acumulado", xaxis_title="Data", yaxis_title="Ton Acumuladas")
 
-    variacao = serie.pct_change() * 100
+    variacao = peso.pct_change() * 100
     fig3 = go.Figure([go.Scatter(x=variacao.index, y=variacao, mode='lines+markers', name='Variação %')])
-    fig3.update_layout(title="📉 Variação % Mês a Mês", xaxis_title="Data", yaxis_title="%")
+    fig3.update_layout(title="📉 Variação Percentual Mês a Mês", xaxis_title="Data", yaxis_title="%")
 
     df['Ano'] = df['Fim Real Caldeiraria'].dt.year
     df['Mês'] = df['Fim Real Caldeiraria'].dt.month_name().str[:3]
@@ -81,14 +78,14 @@ def gerar_graficos(serie, datas_fut, real, otim, pess, acum_r, acum_o, acum_p,
     fig4.update_layout(barmode='stack', title="📊 Barras por Ano", xaxis_title="Mês", yaxis_title="Ton")
 
     fig5 = go.Figure([
-        go.Scatter(x=serie_qtd_ss.index, y=serie_qtd_ss, mode='lines+markers', name='Quantidade de SS')
+        go.Scatter(x=prod.index, y=prod, mode='lines+markers', name='Produtividade (Ton/SS)')
     ])
-    fig5.update_layout(title="📦 Quantidade de SS por Mês", xaxis_title="Data", yaxis_title="Qtde SS")
+    fig5.update_layout(title="⚙️ Produtividade (Ton/SS SAMC)", xaxis_title="Data", yaxis_title="Ton por SS")
 
     fig6 = go.Figure([
-        go.Scatter(x=serie_produtividade.index, y=serie_produtividade, mode='lines+markers', name='Ton/SS')
+        go.Scatter(x=ss.index, y=ss, mode='lines+markers', name='Quantidade de SS SAMC')
     ])
-    fig6.update_layout(title="⚙️ Produtividade (Ton/SS)", xaxis_title="Data", yaxis_title="Toneladas por SS")
+    fig6.update_layout(title="📋 Contagem de SS SAMC por mês", xaxis_title="Data", yaxis_title="SS SAMC")
 
     return fig1, fig2, fig3, fig4, fig5, fig6
 
@@ -97,36 +94,33 @@ def exportar_imagens(figs, nomes):
         fig.write_image(f"{CAMINHO_SAIDA}/{nome}.png", width=1200, height=600, engine="kaleido")
 
 def interface():
-    st.title("📊 Análise de Produtividade e Peso até Julho/2027")
+    st.title("📊 Projeção de Peso, SS SAMC e Produtividade até Julho/2027")
     df = carregar_dados()
-    serie_peso, serie_qtd_ss, serie_produtividade = preparar_series(df)
+    peso, ss, prod = preparar_series(df)
 
-    if serie_peso.empty:
+    if peso.empty:
         st.warning("⚠️ A série de dados está vazia após o filtro.")
         return
 
-    datas, real, otim, pess = prever_serie(serie_peso)
-    acum_r, acum_o, acum_p = construir_acumulados(real, otim, pess, serie_peso)
-    
-    figs = gerar_graficos(serie_peso, datas, real, otim, pess,
-                          acum_r, acum_o, acum_p, serie_qtd_ss, serie_produtividade, df)
+    datas, real, otim, pess = prever_serie(peso)
+    acum_r, acum_o, acum_p = construir_acumulados(real, otim, pess, peso)
+
+    figs = gerar_graficos(peso, ss, prod, datas, real, otim, pess, acum_r, acum_o, acum_p, df)
 
     st.subheader("🔍 Selecione a Visualização")
     op = st.radio("Escolha a série", [
-        "Peso por Mês", "Peso Acumulado", "Variação %", 
-        "Barras por Ano", "Quantidade de SS", "Produtividade Ton/SS"
+        "Soma Mensal", "Acumulado", "Variação (%)", "Barras por Ano", "Produtividade (Ton/SS)", "Quantidade de SS"
     ])
-    fig_dict = {
-        "Peso por Mês": figs[0],
-        "Peso Acumulado": figs[1],
-        "Variação %": figs[2],
+    st.plotly_chart({
+        "Soma Mensal": figs[0],
+        "Acumulado": figs[1],
+        "Variação (%)": figs[2],
         "Barras por Ano": figs[3],
-        "Quantidade de SS": figs[4],
-        "Produtividade Ton/SS": figs[5]
-    }
-    st.plotly_chart(fig_dict[op], use_container_width=True)
+        "Produtividade (Ton/SS)": figs[4],
+        "Quantidade de SS": figs[5]
+    }[op], use_container_width=True)
 
-    st.subheader("📅 Tabela de Projeções de Peso")
+    st.subheader("📅 Tabela de Projeções Mensais")
     df_proj = pd.DataFrame({
         'Data': datas, 'Realista': real, 'Otimista': otim, 'Pessimista': pess,
         'Acum Realista': acum_r, 'Acum Otimista': acum_o, 'Acum Pessimista': acum_p
@@ -134,8 +128,8 @@ def interface():
     st.dataframe(df_proj.style.format("{:,.0f}"))
 
     exportar_imagens(figs, [
-        "peso_mensal", "peso_acumulado", "variacao", "barras_ano", "quantidade_ss", "produtividade"
+        "soma_mensal", "acumulado", "variacao", "barras_por_ano", "produtividade", "ss_samc"
     ])
-    
+
 if __name__ == "__main__":
     interface()
