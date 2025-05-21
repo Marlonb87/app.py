@@ -26,11 +26,13 @@ def preparar_series(df):
     peso_mensal = grupo['Peso Total (Ton)'].sum().last('24M')
     ss_mensal = grupo['SS SAMC'].count().last('24M')
 
-    # Cálculo corrigido da produtividade
     produtividade = peso_mensal / ss_mensal
     produtividade = produtividade.replace([np.inf, -np.inf], np.nan)
 
-    return peso_mensal, ss_mensal, produtividade
+    ss_por_ton = ss_mensal / peso_mensal
+    ss_por_ton = ss_por_ton.replace([np.inf, -np.inf], np.nan)
+
+    return peso_mensal, ss_mensal, produtividade, ss_por_ton
 
 def prever_serie(serie, fim_proj="2027-07-31"):
     serie = serie.copy()
@@ -52,12 +54,13 @@ def construir_acumulados(previsao, otim, pess, base):
             np.cumsum(otim) + base_acum,
             np.cumsum(pess) + base_acum)
 
-def gerar_graficos(peso, ss, prod, datas, real, otim, pess, acum_r, acum_o, acum_p, df):
+def gerar_graficos(peso, ss, prod, ss_ton, datas, real, otim, pess, acum_r, acum_o, acum_p, df):
     media_peso = peso.mean()
     media_acum = peso.cumsum().mean()
     media_var = (peso.pct_change() * 100).mean()
     media_prod = prod.mean()
     media_ss = ss.mean()
+    media_sston = ss_ton.mean()
 
     fig1 = go.Figure([
         go.Scatter(x=peso.index, y=peso, mode='lines+markers', name='Peso (Ton)'),
@@ -103,16 +106,22 @@ def gerar_graficos(peso, ss, prod, datas, real, otim, pess, acum_r, acum_o, acum
     ])
     fig6.update_layout(title="📋 Contagem de SS SAMC por mês", xaxis_title="Data", yaxis_title="SS SAMC")
 
-    return fig1, fig2, fig3, fig4, fig5, fig6
+    fig7 = go.Figure([
+        go.Scatter(x=ss_ton.index, y=ss_ton, mode='lines+markers', name='SS/Ton'),
+        go.Scatter(x=ss_ton.index, y=[media_sston]*len(ss_ton), name='Média Histórica', line=dict(color='gray', dash='dot'))
+    ])
+    fig7.update_layout(title="📐 Eficiência de Fabricação (SS/Ton)", xaxis_title="Data", yaxis_title="SS por Ton")
+
+    return fig1, fig2, fig3, fig4, fig5, fig6, fig7
 
 def exportar_imagens(figs, nomes):
     for fig, nome in zip(figs, nomes):
         fig.write_image(f"{CAMINHO_SAIDA}/{nome}.png", width=1200, height=600, engine="kaleido")
 
 def interface():
-    st.title("📊 Projeção de Peso, SS SAMC e Produtividade até Julho/2027")
+    st.title("📊 Projeção de Peso, SS SAMC, Produtividade e Eficiência (SS/Ton) até Julho/2027")
     df = carregar_dados()
-    peso, ss, prod = preparar_series(df)
+    peso, ss, prod, ss_ton = preparar_series(df)
 
     if peso.empty:
         st.warning("⚠️ A série de dados está vazia após o filtro.")
@@ -121,11 +130,12 @@ def interface():
     datas, real, otim, pess = prever_serie(peso)
     acum_r, acum_o, acum_p = construir_acumulados(real, otim, pess, peso)
 
-    figs = gerar_graficos(peso, ss, prod, datas, real, otim, pess, acum_r, acum_o, acum_p, df)
+    figs = gerar_graficos(peso, ss, prod, ss_ton, datas, real, otim, pess, acum_r, acum_o, acum_p, df)
 
     st.subheader("🔍 Selecione a Visualização")
     op = st.radio("Escolha a série", [
-        "Soma Mensal", "Acumulado", "Variação (%)", "Barras por Ano", "Produtividade (Ton/SS)", "Quantidade de SS"
+        "Soma Mensal", "Acumulado", "Variação (%)", "Barras por Ano",
+        "Produtividade (Ton/SS)", "Quantidade de SS", "Eficiência (SS/Ton)"
     ])
     st.plotly_chart({
         "Soma Mensal": figs[0],
@@ -133,7 +143,8 @@ def interface():
         "Variação (%)": figs[2],
         "Barras por Ano": figs[3],
         "Produtividade (Ton/SS)": figs[4],
-        "Quantidade de SS": figs[5]
+        "Quantidade de SS": figs[5],
+        "Eficiência (SS/Ton)": figs[6]
     }[op], use_container_width=True)
 
     st.subheader("📅 Tabela de Projeções Mensais")
@@ -144,7 +155,8 @@ def interface():
     st.dataframe(df_proj.style.format("{:,.0f}"))
 
     exportar_imagens(figs, [
-        "soma_mensal", "acumulado", "variacao", "barras_por_ano", "produtividade", "ss_samc"
+        "soma_mensal", "acumulado", "variacao", "barras_por_ano",
+        "produtividade", "ss_samc", "eficiencia_ss_ton"
     ])
 
 if __name__ == "__main__":
