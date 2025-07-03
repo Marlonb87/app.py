@@ -12,12 +12,18 @@ os.makedirs(CAMINHO_SAIDA, exist_ok=True)
 
 @st.cache_data
 def carregar_dados():
-    url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_05-06-2025.xlsx"
+    url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_27-06-2025.xlsx"
     df = pd.read_excel(url, engine="openpyxl")
     df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'], errors='coerce')
     df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)', 'SS SAMC'])
     df = df[df['Fim Real Caldeiraria'] <= pd.to_datetime("today")]
     return df
+
+def remover_outlier(serie):
+    q1 = serie.quantile(0.25)
+    q3 = serie.quantile(0.75)
+    iqr = q3 - q1
+    return serie[(serie >= q1 - 1.5 * iqr) & (serie <= q3 + 1.5 * iqr)]
 
 def preparar_series(df):
     df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'])
@@ -25,6 +31,9 @@ def preparar_series(df):
 
     peso_mensal = grupo['Peso Total (Ton)'].sum().last('24M')
     ss_mensal = grupo['SS SAMC'].count().last('24M')
+
+    peso_mensal = remover_outlier(peso_mensal)
+    ss_mensal = remover_outlier(ss_mensal)
 
     produtividade = peso_mensal / ss_mensal
     produtividade = produtividade.replace([np.inf, -np.inf], np.nan)
@@ -119,12 +128,17 @@ def exportar_imagens(figs, nomes):
         fig.write_image(f"{CAMINHO_SAIDA}/{nome}.png", width=1200, height=600, engine="kaleido")
 
 def interface():
-    st.title("📊 Projeção de Peso, SS SAMC, Produtividade e Eficiência (SS/Ton) até Julho/2027")
+    st.title("📊 Projeção de carteira de fabricação até Julho/2027")
     df = carregar_dados()
+
+    anos = df['Fim Real Caldeiraria'].dt.year.unique()
+    ano_sel = st.multiselect("Selecione os anos", sorted(anos), default=sorted(anos))
+    df = df[df['Fim Real Caldeiraria'].dt.year.isin(ano_sel)]
+
     peso, ss, prod, ss_ton = preparar_series(df)
 
     if peso.empty:
-        st.warning("⚠️ A série de dados está vazia após o filtro.")
+        st.warning("⚠️ A série está vazia")
         return
 
     datas, real, otim, pess = prever_serie(peso)
@@ -133,7 +147,7 @@ def interface():
     figs = gerar_graficos(peso, ss, prod, ss_ton, datas, real, otim, pess, acum_r, acum_o, acum_p, df)
 
     st.subheader("🔍 Selecione a Visualização")
-    op = st.radio("Escolha a série", [
+    op = st.radio("Escolha a Série", [
         "Soma Mensal", "Acumulado", "Variação (%)", "Barras por Ano",
         "Produtividade (Ton/SS)", "Quantidade de SS", "Eficiência (SS/Ton)"
     ])
@@ -147,7 +161,7 @@ def interface():
         "Eficiência (SS/Ton)": figs[6]
     }[op], use_container_width=True)
 
-    st.subheader("📅 Tabela de Projeções Mensais")
+    st.subheader("📅 Tabela de projeções mensais")
     df_proj = pd.DataFrame({
         'Data': datas, 'Realista': real, 'Otimista': otim, 'Pessimista': pess,
         'Acum Realista': acum_r, 'Acum Otimista': acum_o, 'Acum Pessimista': acum_p
@@ -158,6 +172,18 @@ def interface():
         "soma_mensal", "acumulado", "variacao", "barras_por_ano",
         "produtividade", "ss_samc", "eficiencia_ss_ton"
     ])
+
+    media_peso = peso.mean()
+    if peso.iloc[-1] < media_peso:
+        st.error("⚠️ O peso do último mês está abaixo da média histórica!")
+    else:
+        st.success("✅ O peso do último mês está dentro ou acima da média!")
+
+    media_prod = prod.mean()
+    if prod.iloc[-1] > media_prod:
+        st.success("✅ A produtividade está acima da média histórica!")
+    else:
+        st.warning("⚠️ A produtividade está abaixo da média histórica!")
 
 if __name__ == "__main__":
     interface()
