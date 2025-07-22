@@ -12,7 +12,7 @@ os.makedirs(CAMINHO_SAIDA, exist_ok=True)
 
 @st.cache_data
 def carregar_dados():
-    url = "https://raw.githubusercontent.com/Marlonb87/app.py/blob/main/4600672730_Prog_Process_18-07-2025.xlsm"
+    url = "https://raw.githubusercontent.com/Marlonb87/app.py/main/4600672730_Prog_Process_18-07-2025.xlsm"
     df = pd.read_excel(url, engine="openpyxl")
     df['Fim Real Caldeiraria'] = pd.to_datetime(df['Fim Real Caldeiraria'], errors='coerce')
     df = df.dropna(subset=['Fim Real Caldeiraria', 'Peso Total (Ton)', 'SS SAMC'])
